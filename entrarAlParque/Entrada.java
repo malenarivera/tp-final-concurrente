@@ -14,7 +14,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author male_
  */
 public class Entrada {
- private Molinete[] molinetes;
+   private Molinete[] molinetes;
    private int horaActual;
    private Semaphore mutexHora;
    
