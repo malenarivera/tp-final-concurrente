@@ -14,18 +14,24 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author male_
  */
 public class Entrada {
-   private Molinete[] molinetes;
+ private Molinete[] molinetes;
+   private int horaActual;
+   private Semaphore mutexHora;
    
    public Entrada(int cantMolinetes){
        molinetes= new Molinete [cantMolinetes];
        this.inicializarMolinetes();
+       horaActual=0;
+       mutexHora= new Semaphore(1);
+  
    }
    
    public int entrarAlParque(){
        boolean entro=false;
        int molineteAEsperar=0, i;
        i=0;
-       
+       mutexHora.acquire();
+       if(horaActual>=9 && horaActual<=17){
        //Busca un molinete libre
        while(i<molinetes.length){
            if(molinetes[i].molineteLibre()){
@@ -45,6 +51,8 @@ public class Entrada {
        }
        return molineteAEsperar;
    }
+      i=-1;
+   }
    
    public void entro(int molineteQueLeToco){
        molinetes[molineteQueLeToco].librerarMolinete();
@@ -55,6 +63,13 @@ public class Entrada {
            molinetes[i]= new Molinete();
        }
    }
+   
+   public void pasarHora(){
+       if(horaActual>=23)
+           horaActual=0;
+       else
+           horaActual++;
+   }
     
-}    
-
+    
+}
