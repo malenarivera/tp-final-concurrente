@@ -28,8 +28,9 @@ public class Entrada {
    
    public int entrarAlParque(){
        boolean entro=false;
-       int molineteAEsperar=0, i;
+       int molineteAEsperar=-1, i;
        i=0;
+       try{
        mutexHora.acquire();
        if(horaActual>=9 && horaActual<=17){
        //Busca un molinete libre
@@ -49,14 +50,18 @@ public class Entrada {
        molineteAEsperar= (int) (Math.random()*(molinetes.length));
        molinetes[molineteAEsperar].esperarPorMolinete();
        }
+       }
+    } catch (Exception e){}
+   
        return molineteAEsperar;
    }
-      i=-1;
-   }
+   
+   
    
    public void entro(int molineteQueLeToco){
        molinetes[molineteQueLeToco].librerarMolinete();
    }
+   
    
    private void inicializarMolinetes(){
        for (int i = 0; i < molinetes.length; i++) {
