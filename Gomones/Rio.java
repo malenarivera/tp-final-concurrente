@@ -17,30 +17,60 @@ import java.util.logging.Logger;
  */
 public class Rio {
     //recurso compartido
-    private int cantTotalGomonesInd, cantTotalGomonesDobles, cantGomonesQueSePuedenTirar;
-    private Semaphore cantGomonesIndividuales, cantGomonesDobles, puedeSalir, puedeSalirCamioneta;
+    private int cantTotalGomonesInd, cantTotalGomonesDobles, cantGomonesQueSePuedenTirar, cantGomonesQueSeTiraron;
+    private Semaphore gomonesIndividuales, gomonesDobles, puedeSalir, puedeSalirCamioneta, puedenTirarse, mutex, espaciosCamioneta, camionetaVacia;
     CyclicBarrier barrera;
+    private CamionetaConBolsos c;
     
    public Rio(int cantGomonesInd, int cantGomonesDobles, int cantGomonesQueSePuedenTirar){
-       this.cantGomonesDobles=new Semaphore(cantGomonesDobles);
-       cantTotalGomonesInd=cantGomonesInd;
-       cantTotalGomonesDobles=cantGomonesDobles;
-       this.cantGomonesIndividuales= new Semaphore(cantGomonesInd);
+       this.cantTotalGomonesInd=cantGomonesInd;
+       this.cantTotalGomonesDobles=cantGomonesDobles;
+       this.cantGomonesQueSePuedenTirar=cantGomonesQueSePuedenTirar;
+       this.cantGomonesQueSeTiraron=0;
+       
+       gomonesIndividuales= new Semaphore(this.cantTotalGomonesInd);
+       gomonesDobles= new Semaphore(this.cantTotalGomonesDobles);
+       puedenTirarse= new Semaphore(this.cantGomonesQueSePuedenTirar);
+       mutex= new Semaphore(1);
+       
        barrera= new CyclicBarrier(cantGomonesQueSePuedenTirar);
+       
+       
+       //parte camioneta
+       
+       c= new CamionetaConBolsos(cantGomonesQueSePuedenTirar);
+       espaciosCamioneta= new Semaphore(cantGomonesQueSePuedenTirar);
+       camionetaVacia=new Semaphore(0);
        puedeSalir= new Semaphore(0);
        puedeSalirCamioneta= new Semaphore(0);
+       
+             
    }
    
    
    public void entrarIndividual(){
         try {
             //agarra un gomon individual, sino se queda bloqueado
-             cantGomonesIndividuales.acquire();
-                //espera a tirarse
+             gomonesIndividuales.acquire();
+                //se fija si todavia hay espacio para tirarse
+                puedenTirarse.acquire();
+                //espera a que el resto de gomones esten listos
                 barrera.await();
                 
-                //cuando se tiran, agarran este permiso que lo liberara la camioneta cuando llegue
-                puedeSalir.acquire();
+                //avisa que se tiro
+                mutex.acquire();
+                cantGomonesQueSeTiraron++;
+                puedeSalirCamioneta.release();
+                
+                //si soy el ultimo hilo que se podia tirar, reseteo la barrera
+                if(cantGomonesQueSeTiraron==this.cantGomonesQueSePuedenTirar){
+                barrera.reset();
+                puedenTirarse.release(this.cantGomonesQueSePuedenTirar);
+                }
+                
+                mutex.release();
+                
+                
         } catch (Exception ex) {
             Logger.getLogger(Rio.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -49,28 +79,80 @@ public class Rio {
    public void entrarDoble(){
         try {
             //agarra un gomon individual, sino se queda bloqueado
-             cantGomonesDobles.acquire();
-                //espera a tirarse
+             gomonesDobles.acquire();
+                
+             //se fija si todavia hay espacio para tirarse
+                puedenTirarse.acquire();
+                
+                //espera que el resto de gomones esten listos
                 barrera.await();
-                 //cuando se tiran, agarran este permiso que lo liberara la camioneta cuando llegue
-                puedeSalir.acquire();
+                
+                //avisa que se tiro
+                mutex.acquire();
+                cantGomonesQueSeTiraron++;
+                puedeSalirCamioneta.release();
+                
+                //si soy el ultimo hilo que se podia tirar, reseteo la barrera
+                if(cantGomonesQueSeTiraron==this.cantGomonesQueSePuedenTirar){
+                barrera.reset();
+                puedenTirarse.release(this.cantGomonesQueSePuedenTirar);
+                }
+                
+                mutex.release();
+                
+                
         } catch (Exception ex) {
             Logger.getLogger(Rio.class.getName()).log(Level.SEVERE, null, ex);
         }
    }
    
-   public void salirCamioneta(){
+   
+   public int dejarBolso(){
+       int nroBolso=-1;
+       try {
+       espaciosCamioneta.acquire();
+       nroBolso= c.guardarBolso();
+       }catch(Exception e){}
+       return nroBolso;
+   }
+
+   public void retirarBolso(int nroBolso){
+        c.sacarBolso(nroBolso);
+        camionetaVacia.release();
+    }
+   
+   public void camionetaBaja(){
        try {
            puedeSalirCamioneta.acquire(cantGomonesQueSePuedenTirar);
+      
        } catch (Exception e) {
        }
    }
    
-   public void llegoLaCamioneta(){
-       //la camioneta llego al final, ahora les avisa a los del gomon que se pueden retirar de la actividad
-       puedeSalir.release(cantGomonesQueSePuedenTirar);
-       barrera.reset();
+   public void camionetaSube(){
+       try {
+           camionetaVacia.acquire(cantGomonesQueSePuedenTirar);
+   
+       } catch (Exception e) {
+       }
+       
    }
+   
+   
+   
+   
+   
+   
+   public void salirDoble(){
+           gomonesDobles.release();
+   }
+   
+   public void salirIndividual(){
+       gomonesIndividuales.release();
+   }
+  
+   
+   
    
    
    

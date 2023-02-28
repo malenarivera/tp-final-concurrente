@@ -17,9 +17,9 @@ public class CamionetaConBolsos {
     private int bolsoCliente;
     
     
-    public CamionetaConBolsos(){
+    public CamionetaConBolsos(int cantLugares){
         mutex= new Semaphore(1);
-        bolsitos= new String[30];
+        bolsitos= new String[cantLugares];
     }
     
     public int guardarBolso(){
@@ -46,6 +46,12 @@ public class CamionetaConBolsos {
             bolsitos[numeroBolso]=null;
             mutex.release();
         } catch (Exception e) {
+        }
+    }
+    
+    public void run(){
+        while(true){
+            
         }
     }
 }
