@@ -31,6 +31,7 @@ public class Rio {
        puedeSalirCamioneta= new Semaphore(0);
    }
    
+   
    public void entrarIndividual(){
         try {
             //agarra un gomon individual, sino se queda bloqueado
@@ -70,6 +71,8 @@ public class Rio {
        puedeSalir.release(cantGomonesQueSePuedenTirar);
        barrera.reset();
    }
+   
+   
    
    
    
